@@ -32,6 +32,8 @@
           matplotlib
 
           pybullet
+          gym
+          robot-descriptions
 
           # Jupyter Lab
           jupyterlab
