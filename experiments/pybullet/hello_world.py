@@ -3,6 +3,10 @@ import time
 import pybullet_data
 
 # p.GUI for graphical, or p.DIRECT for headless
+#
+# The GUI connection will create a new graphical user interface (GUI)
+# with 3D OpenGL rendering, within the same process space as PyBullet.
+# On Linux and Windows this GUI runs in a separate thread
 client = p.connect(p.GUI)
 
 p.setAdditionalSearchPath(pybullet_data.getDataPath())  # optionally
