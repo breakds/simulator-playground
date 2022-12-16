@@ -7,18 +7,6 @@ from PIL import Image
 
 
 HEADLESS = True
-
-if HEADLESS:
-    p.connect(p.DIRECT)
-    egl = pkgutil.get_loader("eglRenderer")
-    plugin = p.loadPlugin(egl.get_filename(), "_eglRendererPlugin")
-    p.configureDebugVisualizer(p.COV_ENABLE_RENDERING, 0)
-    p.configureDebugVisualizer(p.COV_ENABLE_GUI, 0)
-else:
-    p.connect(p.GUI)
-p.setAdditionalSearchPath(pybullet_data.getDataPath())
-p.setGravity(0.0, 0.0, -9.8)
-
 GROUND_RADIUS = 2.0
 
 
@@ -68,6 +56,17 @@ projection_matrix = np.array(
 
 class QuadrupedEnvironment(object):
     def __init__(self, action_freq=10):
+        if HEADLESS:
+            p.connect(p.DIRECT)
+            egl = pkgutil.get_loader("eglRenderer")
+            self._plugin = p.loadPlugin(egl.get_filename(), "_eglRendererPlugin")
+            p.configureDebugVisualizer(p.COV_ENABLE_RENDERING, 0)
+            p.configureDebugVisualizer(p.COV_ENABLE_GUI, 0)
+        else:
+            p.connect(p.GUI)
+        p.setAdditionalSearchPath(pybullet_data.getDataPath())
+        p.setGravity(0.0, 0.0, -9.8)
+
         self._ground = p.loadURDF(
             "plane.urdf", [0.0, 0.0, 0.0], flags=p.URDF_ENABLE_CACHED_GRAPHICS_SHAPES
         )
@@ -76,6 +75,10 @@ class QuadrupedEnvironment(object):
         self._perf_step = Perf("Step")
         self._perf_reset = Perf("Reset")
         self._step_count = 0
+
+    def __del__(self):
+        if HEADLESS:
+            p.unloadPlugin(self._plugin)
 
     @property
     def n(self):
