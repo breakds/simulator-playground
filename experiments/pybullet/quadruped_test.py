@@ -3,6 +3,8 @@ import pybullet as p
 import pybullet_data
 import pkgutil
 import time
+from PIL import Image
+
 
 HEADLESS = True
 
@@ -65,23 +67,68 @@ projection_matrix = np.array(
 
 
 class QuadrupedEnvironment(object):
-    def __init__(self):
+    def __init__(self, action_freq=10):
         self._ground = p.loadURDF(
             "plane.urdf", [0.0, 0.0, 0.0], flags=p.URDF_ENABLE_CACHED_GRAPHICS_SHAPES
         )
         self._robots = []
-
-        self._perf_physics = Perf("Physics")
-        self._perf_render = Perf("Render")
+        self._steps_per_action = int(240 / action_freq)
+        self._perf_step = Perf("Step")
         self._perf_reset = Perf("Reset")
+        self._step_count = 0
+
+    @property
+    def n(self):
+        return len(self._robots)
+
+    def step(self, target_positions: np.ndarray):
+        self._perf_step.start()
+        # Currently, each action step include 24 physical steps and 1 rendering.
+        # Pybullet by default runs at 240 Hz, i.e. each physical step = 1 / 240
+        # second in logical time.
+        for i in range(self.n):
+            p.setJointMotorControlArray(
+                self._robots[i],
+                np.arange(p.getNumJoints(self._robots[i])),
+                p.POSITION_CONTROL,
+                targetPositions=target_positions[i],
+            )
+
+        for _ in range(self._steps_per_action):
+            p.stepSimulation()
+
+        view_matrix = p.computeViewMatrixFromYawPitchRoll(
+            [0.01, -0.01, 0.4],
+            2.0,  # distance
+            0.0,  # yaw
+            -40.0,  # pitch
+            0.0,  # roll
+            2,
+        )  # up axis index (2 means z direction)
+        snapshot = p.getCameraImage(
+            600,
+            400,
+            viewMatrix=view_matrix,
+            projectionMatrix=projection_matrix,
+            shadow=1,
+            lightDirection=[1, 1, 1],
+        )
+        self._perf_step.stop()
+        self._steps_count += 1
+        Image.fromarray(snapshot[2][:, :, :3]).save(
+            f"/home/breakds/tmp/bullet_capture/p{self._steps_count}.jpg"
+        )
 
     def reset(self, n: int = 10):
+        self._perf_reset.start()
+        self._steps_count = 0
+
         positions = np.random.uniform(
             [-GROUND_RADIUS, -GROUND_RADIUS, 0.2],
             [GROUND_RADIUS, GROUND_RADIUS, 1.2],
             size=(n, 3),
         )
-        self._perf_reset.start()
+
         for i in range(n):
             self._robots.append(
                 p.loadURDF(
@@ -92,51 +139,21 @@ class QuadrupedEnvironment(object):
             )
         self._perf_reset.stop()
 
-    def run(self, steps: int = 1000):
-        n = len(self._robots)
-        for step in range(steps):
-            target_positions = np.random.uniform(-0.8, 1.5, size=(n, 4))
-            for i in range(n):
-                p.setJointMotorControlArray(
-                    self._robots[i],
-                    [3, 8, 13, 18],
-                    p.POSITION_CONTROL,
-                    targetPositions=target_positions[i],
-                )
-
-            self._perf_physics.start()
-            p.stepSimulation()
-            self._perf_physics.stop()
-
-            focus_position, _ = p.getBasePositionAndOrientation(self._robots[0])
-
-            view_matrix = p.computeViewMatrixFromYawPitchRoll(
-                focus_position,
-                2.0,  # distance
-                0.0,  # yaw
-                -40.0,  # pitch
-                0.0,  # roll
-                2,
-            )  # up axis index (2 means z direction)
-
-            self._perf_render.start()
-            img = p.getCameraImage(
-                600,
-                400,
-                viewMatrix=view_matrix,
-                projectionMatrix=projection_matrix,
-                shadow=1,
-                lightDirection=[1, 1, 1],
+    def run(self, steps: int = 100):
+        for _ in range(steps):
+            target_positions = np.random.uniform(
+                -0.2, 0.5, size=(self.n, p.getNumJoints(self._robots[0]))
             )
-            self._perf_render.stop()
+            self.step(target_positions)
+            if not HEADLESS:
+                time.sleep(0.1)
 
     def report(self):
-        self._perf_physics.report()
         self._perf_reset.report()
-        self._perf_render.report()
+        self._perf_step.report()
 
 
 env = QuadrupedEnvironment()
-env.reset(20)
+env.reset(1)
 env.run(1000)
 env.report()
