@@ -4,11 +4,13 @@ import pybullet_data
 from pybullet_utils import bullet_client as bc
 import pkgutil
 import time
+from pathlib import Path
 from PIL import Image
 
 
 NUM_ENVS = 20
 NUM_AGENTS = 1
+ROBOT = "anymal_b"
 HEADLESS = True
 GROUND_RADIUS = 2.0
 
@@ -138,14 +140,28 @@ class QuadrupedEnvironment(object):
             size=(n, 3),
         )
 
-        for i in range(n):
-            self._robots.append(
-                self._client.loadURDF(
-                    "a1/a1.urdf",
-                    positions[i],
-                    flags=p.URDF_ENABLE_CACHED_GRAPHICS_SHAPES,
-                )
+        if ROBOT != "a1":
+            self._client.setAdditionalSearchPath(
+                f"{Path(__file__).parent.parent.parent}/resources"
             )
+
+        for i in range(n):
+            if ROBOT == "a1":
+                self._robots.append(
+                    self._client.loadURDF(
+                        "a1/a1.urdf",
+                        positions[i],
+                        flags=p.URDF_ENABLE_CACHED_GRAPHICS_SHAPES,
+                    )
+                )
+            elif ROBOT == "anymal_b":
+                self._robots.append(
+                    self._client.loadURDF(
+                        "anymal_b/urdf/anymal_b.urdf",
+                        positions[i],
+                        flags=p.URDF_ENABLE_CACHED_GRAPHICS_SHAPES,
+                    )
+                )
         self._perf_reset.stop()
 
     def run(self, steps: int = 100):
