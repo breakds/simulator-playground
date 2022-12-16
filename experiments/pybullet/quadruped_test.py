@@ -8,8 +8,8 @@ from pathlib import Path
 from PIL import Image
 
 
-NUM_ENVS = 20
-NUM_AGENTS = 1
+NUM_ENVS = 1
+NUM_AGENTS = 20
 ROBOT = "anymal_b"
 HEADLESS = True
 GROUND_RADIUS = 2.0
@@ -158,6 +158,14 @@ class QuadrupedEnvironment(object):
                 self._robots.append(
                     self._client.loadURDF(
                         "anymal_b/urdf/anymal_b.urdf",
+                        positions[i],
+                        flags=p.URDF_ENABLE_CACHED_GRAPHICS_SHAPES,
+                    )
+                )
+            elif ROBOT == "anymal_c":
+                self._robots.append(
+                    self._client.loadURDF(
+                        "anymal_c/urdf/anymal_c.urdf",
                         positions[i],
                         flags=p.URDF_ENABLE_CACHED_GRAPHICS_SHAPES,
                     )
