@@ -34,6 +34,7 @@
           pybullet
           gym
           robot-descriptions
+          mujoco-pybind
 
           # Jupyter Lab
           jupyterlab
