@@ -35,6 +35,7 @@
           gym
           robot-descriptions
           mujoco-pybind
+          mujoco-menagerie
 
           # Jupyter Lab
           jupyterlab
