@@ -30,6 +30,7 @@
         packages = let pythonEnv = pkgs.python3.withPackages (pyPkgs: with pyPkgs; [
           numpy
           matplotlib
+          pudb
 
           pybullet
           gym
