@@ -2,6 +2,7 @@ import numpy as np
 import mujoco
 import mujoco_menagerie
 from PIL import Image
+from matplotlib import pyplot as plt
 
 
 def inspect_model(model: mujoco.MjModel):
@@ -25,11 +26,24 @@ def main():
     data = mujoco.MjData(model)
     model.opt.timestep = 1 / 240.0
     renderer = mujoco.Renderer(model, height=400, width=600)
-    mujoco.mj_step(model, data)
-    print(data.time)
+
+    tracked_qpos = []
+    for _ in range(1000):
+        data.actuator("LF_HAA").ctrl = 0.7
+        mujoco.mj_step(model, data)
+        tracked_qpos.append(data.joint("LF_HAA").qpos.item())
+
+    # Plot the tracked qpos
+    tracked_qpos = np.array(tracked_qpos)
+    fig, ax = plt.subplots(1, 1)
+    ax.plot(tracked_qpos)
+    fig.savefig("/home/breakds/tmp/tracked_qpos.jpg")
+
+    # Rendering
     renderer.update_scene(data)
     img = renderer.render()
     Image.fromarray(img).save("/home/breakds/tmp/anymal_b.jpg")
+    
 
 
 if __name__ == "__main__":
